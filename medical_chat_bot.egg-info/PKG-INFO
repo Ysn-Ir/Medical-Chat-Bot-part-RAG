@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: medical-chat-bot
+Version: 0.0.1
+Author: Yassine Ouali
+Author-email: Oualiy419@gmail.com
+License-File: LICENSE
+Dynamic: author
+Dynamic: author-email
+Dynamic: license-file
