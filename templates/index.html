@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical AI Doctor</title>
+    <style>
+        /* --- CSS STYLES --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f3; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .container { width: 100%; max-width: 600px; background: white; height: 90vh; margin-top: 2vh; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .header { background: #2c3e50; color: white; padding: 20px; text-align: center; font-size: 1.2rem; font-weight: bold; border-radius: 12px 12px 0 0; }
+        
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .message { padding: 12px 18px; border-radius: 20px; max-width: 80%; font-size: 0.95rem; line-height: 1.5; }
+        .user { align-self: flex-end; background: #3498db; color: white; border-bottom-right-radius: 2px; }
+        .bot { align-self: flex-start; background: #f1f0f0; color: #333; border-bottom-left-radius: 2px; }
+        
+        .input-area { padding: 20px; border-top: 1px solid #eee; display: flex; gap: 10px; background: white; border-radius: 0 0 12px 12px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #3498db; }
+        button { padding: 12px 25px; background: #2c3e50; color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #34495e; }
+        
+        .loading { font-style: italic; color: #7f8c8d; font-size: 0.8rem; margin-left: 10px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">🩺 Medical RAG Assistant</div>
+        
+        <div class="chat-box" id="chat">
+            <div class="message bot">Hello. I have read your medical documents. How can I help?</div>
+            <div class="loading" id="loader">Dr. Mistral is thinking...</div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="msg" placeholder="Type your symptom here..." autocomplete="off">
+            <button onclick="send()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        async function send() {
+            let input = document.getElementById('msg');
+            let txt = input.value.trim();
+            if(!txt) return;
+            
+            // 1. Add User Message
+            addMsg(txt, 'user');
+            input.value = '';
+            
+            // 2. Show Loader
+            let loader = document.getElementById('loader');
+            loader.style.display = 'block';
+            document.getElementById('chat').appendChild(loader);
+
+            try {
+                let fd = new FormData();
+                fd.append('query', txt);
+
+                // --- THE FIX: Pointing to /chat instead of /search ---
+                let res = await fetch('/chat', { method: 'POST', body: fd });
+                
+                if (!res.ok) throw new Error("Server Error");
+
+                let data = await res.json();
+                
+                // 3. Hide Loader & Show AI Response
+                loader.style.display = 'none';
+                addMsg(data.response, 'bot');
+
+            } catch(e) {
+                loader.style.display = 'none';
+                addMsg("Error: Could not connect to the doctor.", 'bot');
+                console.error(e);
+            }
+        }
+
+        function addMsg(txt, cls) {
+            let div = document.createElement('div');
+            div.className = 'message ' + cls;
+            div.innerText = txt;
+            let chat = document.getElementById('chat');
+            // Insert before the loader
+            chat.insertBefore(div, document.getElementById('loader'));
+            chat.scrollTop = chat.scrollHeight;
+        }
+        
+        // Allow Enter key to send
+        document.getElementById("msg").addEventListener("keyup", function(event) {
+            if (event.key === "Enter") send();
+        });
+    </script>
+</body>
+</html>
