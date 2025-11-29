@@ -4,7 +4,7 @@ import os
 from pinecone import Pinecone 
 from pinecone import ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
-from src.helper import load_load_pdf_files,filter_text,text_split,download_emb
+from helper import load_load_pdf_files,filter_text,text_split,download_emb
 load_dotenv()
 
 PINECONE_API_KEY=os.getenv("pinecone")
