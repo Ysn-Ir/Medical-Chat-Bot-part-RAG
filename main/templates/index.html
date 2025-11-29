@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedRAG AI | Intelligent Medical Assistant</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+    --primary-color: #0066cc; /* Medical Blue */
+    --primary-hover: #0052a3;
+    --bg-color: #f4f7f6;
+    --sidebar-bg: #ffffff;
+    --chat-bg: #ffffff;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --border-color: #e2e8f0;
+    --user-msg-bg: #0066cc;
+    --bot-msg-bg: #f1f5f9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    height: 100vh;
+    color: var(--text-dark);
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 300px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-section {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.upload-container {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.upload-container.dragover {
+    border-color: var(--primary-color);
+    background: #eef6ff;
+}
+
+.upload-icon { font-size: 2rem; color: var(--text-light); margin-bottom: 10px; }
+.browse-btn { color: var(--primary-color); cursor: pointer; font-weight: 600; }
+.file-name { margin-top: 10px; font-size: 0.85rem; color: var(--text-dark); font-weight: 500; }
+
+#uploadBtn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+#uploadBtn:disabled { background: var(--text-light); cursor: not-allowed; opacity: 0.5; }
+#uploadBtn:not(:disabled):hover { background: var(--primary-hover); }
+
+.sidebar-footer { margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 20px; }
+.status-indicator { font-size: 0.85rem; color: var(--text-light); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+.dot.online { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+
+/* Main Chat Styles */
+.chat-interface {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--chat-bg);
+}
+
+.chat-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(10px);
+}
+.header-info h3 { font-size: 1.1rem; }
+.header-info p { font-size: 0.85rem; color: var(--text-light); }
+
+.chat-window {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.message {
+    display: flex;
+    gap: 15px;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease;
+}
+
+.message.user {
+    margin-left: auto;
+    flex-direction: row-reverse;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.message.bot .avatar { background: #10b981; }
+
+.content {
+    background: var(--bot-msg-bg);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-dark);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.message.user .content {
+    background: var(--user-msg-bg);
+    color: white;
+    border-radius: 12px;
+    border-top-right-radius: 2px;
+}
+
+/* Markdown Styles inside bot messages */
+.content strong { font-weight: 600; }
+.content ul { margin-left: 20px; margin-top: 5px; }
+.content p { margin-bottom: 8px; }
+.content p:last-child { margin-bottom: 0; }
+
+/* Input Area */
+.input-area {
+    padding: 20px 30px;
+    border-top: 1px solid var(--border-color);
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#userInput {
+    width: 100%;
+    padding: 15px 50px 15px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    outline: none;
+    font-family: inherit;
+    font-size: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    transition: border 0.2s;
+}
+
+#userInput:focus { border-color: var(--primary-color); }
+
+#sendBtn {
+    position: absolute;
+    right: 10px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#sendBtn:hover { transform: scale(1.05); }
+
+.disclaimer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 10px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast Notifications */
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+.toast {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-top: 10px;
+    border-left: 4px solid var(--primary-color);
+    animation: slideIn 0.3s ease;
+}
+.toast.error { border-left-color: #ef4444; }
+.toast.success { border-left-color: #10b981; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Typing Indicator */
+.typing-dots { display: flex; gap: 4px; padding: 5px 0; }
+.typing-dots span {
+    width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+    </style>
+<body>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-section">
+                <i class="fa-solid fa-heart-pulse"></i>
+                <span>MedRAG AI</span>
+            </div>
+
+            <div class="upload-container" id="drop-zone">
+                <input type="file" id="fileInput" hidden accept=".pdf,.txt">
+                <div class="upload-icon">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <p>Drag & Drop PDF or <span class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse</span></p>
+                <div id="file-name" class="file-name"></div>
+                <button id="uploadBtn" onclick="uploadFile()" disabled>Analyze Document</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="dot online"></span> System Operational
+                </div>
+            </div>
+        </aside>
+
+        <main class="chat-interface">
+            <header class="chat-header">
+                <div class="header-info">
+                    <h3>Medical Assistant</h3>
+                    <p>AI-powered analysis of clinical reports</p>
+                </div>
+            </header>
+
+            <div class="chat-window" id="chatbox">
+                <div class="message bot">
+                    <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                    <div class="content">
+                        Hello. I am your Medical RAG Assistant. Upload a patient report (PDF) to the left to begin, or ask me general medical questions.
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="userInput" placeholder="Ask about symptoms, diagnosis, or the uploaded file..." autocomplete="off">
+                    <button id="sendBtn" onclick="sendMessage()">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+                <p class="disclaimer">AI can make mistakes. Please verify critical medical information.</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script >document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('drop-zone');
+    const fileNameDisplay = document.getElementById('file-name');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const userInput = document.getElementById('userInput');
+
+    // Drag & Drop Handling
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+    });
+
+    dropZone.addEventListener('drop', handleDrop, false);
+    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        handleFiles(dt.files);
+    }
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            fileInput.files = files; // Sync with input
+            fileNameDisplay.textContent = files[0].name;
+            uploadBtn.disabled = false;
+        }
+    }
+
+    // Enter key support
+    userInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+    });
+});
+
+// Toast Notification System
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById("fileInput");
+    const btn = document.getElementById("uploadBtn");
+    
+    if (!fileInput.files[0]) return;
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+
+    try {
+        const response = await fetch("/upload", { method: "POST", body: formData });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(`Success! ${data.chunks_added} chunks indexed.`, 'success');
+        } else {
+            showToast(`Error: ${data.detail}`, 'error');
+        }
+    } catch (e) {
+        showToast("Upload failed due to connection error.", 'error');
+    }
+    
+    btn.disabled = false;
+    btn.textContent = "Analyze Document";
+}
+
+async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const chatbox = document.getElementById("chatbox");
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    // Add User Message
+    addMessage(text, 'user');
+    input.value = "";
+
+    // Add Loading Indicator
+    const loaderId = addLoader();
+
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await response.json();
+        
+        // Remove Loader
+        document.getElementById(loaderId).remove();
+        
+        // Add Bot Message (Parsed with Marked.js for formatting)
+        const formattedResponse = marked.parse(data.response);
+        addMessage(formattedResponse, 'bot', true);
+
+    } catch (error) {
+        document.getElementById(loaderId).remove();
+        showToast("Failed to get response from AI.", 'error');
+        addMessage("Sorry, I encountered an error connecting to the server.", 'bot');
+    }
+}
+
+function addMessage(text, sender, isHtml = false) {
+    const chatbox = document.getElementById("chatbox");
+    const div = document.createElement("div");
+    div.className = `message ${sender}`;
+    
+    const icon = sender === 'user' ? 'fa-user' : 'fa-user-doctor';
+    
+    div.innerHTML = `
+        <div class="avatar"><i class="fa-solid ${icon}"></i></div>
+        <div class="content">${isHtml ? text : escapeHtml(text)}</div>
+    `;
+    
+    chatbox.appendChild(div);
+    chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function addLoader() {
+    const chatbox = document.getElementById("chatbox");
+    const id = 'loader-' + Date.now();
+    const div = document.createElement("div");
+    div.className = `message bot`;
+    div.id = id;
+    div.innerHTML = `
+        <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
+        <div class="content">
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+        </div>
+    `;
+    chatbox.appendChild(div);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    return id;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}</script>
+</body>
+</html>

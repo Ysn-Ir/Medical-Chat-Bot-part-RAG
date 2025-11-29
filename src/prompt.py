@@ -1,27 +1,10 @@
+prompt_template = """You are a medical AI assistant designed to give general wellness guidance only.
+Use the following context to help answer the user's question. 
+Do not provide diagnoses, do not name illnesses, do not list medications, and do not suggest medical tests.
+If the context doesn't contain the answer, rely on your general knowledge but remain cautious.
 
-# -----------------------------
-# 2️⃣ Prompts for testing
-# -----------------------------
-prompts = [
-    "Patient: I have a headache and mild fever. What should I do , i am male 20 yo , and ?\nDoctor:",
-]
+Context:
+{context}
 
-# %%
-# Define the chat function
-def ask_doctor(user_prompt):
-    if not user_prompt:
-        return "Please enter a symptom."
-        
-    # Engineer the prompt
-    engineered_prompt = (
-        "Read the following patient query and summarize general wellness advice found in standard medical textbooks. "
-        "Do not act as a doctor. Do not sign a name.prescribe typeof  drugs if needed but nothing specific.\n\n"
-        f"Query: {user_prompt}\n"
-        "Summary:"
-    )
-
-    # Generate and print response
-    print("Thinking...")
-    response = generate_response(model_lora, engineered_prompt)
-    print(f"\n🩺 Patient: {user_prompt}")
-    print(f"💬 Doctor: {response}")
+Patient: {query}
+Assistant:"""

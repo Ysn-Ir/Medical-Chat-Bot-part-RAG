@@ -1,0 +1,252 @@
+:root {
+    --primary-color: #0066cc; /* Medical Blue */
+    --primary-hover: #0052a3;
+    --bg-color: #f4f7f6;
+    --sidebar-bg: #ffffff;
+    --chat-bg: #ffffff;
+    --text-dark: #1e293b;
+    --text-light: #64748b;
+    --border-color: #e2e8f0;
+    --user-msg-bg: #0066cc;
+    --bot-msg-bg: #f1f5f9;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    height: 100vh;
+    color: var(--text-dark);
+}
+
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Sidebar Styles */
+.sidebar {
+    width: 300px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-section {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.upload-container {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #fafafa;
+}
+
+.upload-container.dragover {
+    border-color: var(--primary-color);
+    background: #eef6ff;
+}
+
+.upload-icon { font-size: 2rem; color: var(--text-light); margin-bottom: 10px; }
+.browse-btn { color: var(--primary-color); cursor: pointer; font-weight: 600; }
+.file-name { margin-top: 10px; font-size: 0.85rem; color: var(--text-dark); font-weight: 500; }
+
+#uploadBtn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+#uploadBtn:disabled { background: var(--text-light); cursor: not-allowed; opacity: 0.5; }
+#uploadBtn:not(:disabled):hover { background: var(--primary-hover); }
+
+.sidebar-footer { margin-top: auto; border-top: 1px solid var(--border-color); padding-top: 20px; }
+.status-indicator { font-size: 0.85rem; color: var(--text-light); display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+.dot.online { background: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+
+/* Main Chat Styles */
+.chat-interface {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--chat-bg);
+}
+
+.chat-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(10px);
+}
+.header-info h3 { font-size: 1.1rem; }
+.header-info p { font-size: 0.85rem; color: var(--text-light); }
+
+.chat-window {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.message {
+    display: flex;
+    gap: 15px;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease;
+}
+
+.message.user {
+    margin-left: auto;
+    flex-direction: row-reverse;
+}
+
+.avatar {
+    width: 35px;
+    height: 35px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.message.bot .avatar { background: #10b981; }
+
+.content {
+    background: var(--bot-msg-bg);
+    padding: 12px 18px;
+    border-radius: 12px;
+    border-top-left-radius: 2px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-dark);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.message.user .content {
+    background: var(--user-msg-bg);
+    color: white;
+    border-radius: 12px;
+    border-top-right-radius: 2px;
+}
+
+/* Markdown Styles inside bot messages */
+.content strong { font-weight: 600; }
+.content ul { margin-left: 20px; margin-top: 5px; }
+.content p { margin-bottom: 8px; }
+.content p:last-child { margin-bottom: 0; }
+
+/* Input Area */
+.input-area {
+    padding: 20px 30px;
+    border-top: 1px solid var(--border-color);
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+#userInput {
+    width: 100%;
+    padding: 15px 50px 15px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 30px;
+    outline: none;
+    font-family: inherit;
+    font-size: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    transition: border 0.2s;
+}
+
+#userInput:focus { border-color: var(--primary-color); }
+
+#sendBtn {
+    position: absolute;
+    right: 10px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#sendBtn:hover { transform: scale(1.05); }
+
+.disclaimer {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 10px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Toast Notifications */
+#toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+.toast {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    margin-top: 10px;
+    border-left: 4px solid var(--primary-color);
+    animation: slideIn 0.3s ease;
+}
+.toast.error { border-left-color: #ef4444; }
+.toast.success { border-left-color: #10b981; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+/* Typing Indicator */
+.typing-dots { display: flex; gap: 4px; padding: 5px 0; }
+.typing-dots span {
+    width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
