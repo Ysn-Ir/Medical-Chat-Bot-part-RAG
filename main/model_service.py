@@ -35,10 +35,15 @@ class MedicalLLM:
         # 1. Construct RAG Prompt
         if context:
             system_prompt = (
-                "You are a helpful medical assistant. Use the provided context to answer the patient's question.\n"
+                "You are a helpful assistant, not a doctor.\n"
                 "If the answer is not in the context, use your general medical knowledge but mention that it is general advice.\n"
                 "Do not invent medical facts.\n\n"
+                "do not mention any doctor name , or hosiptal , stick to the facts , and only the the facts"
+                " and now for the question i am providing , answer it directly , without any dodging , or any sort of inventing facts "
+                "remember you are an ai system , and you should stick to answer my question"
                 f"### Context:\n{context}\n\n"
+                "this is the context for a better answer of my question"
+                "the answer should start directly , with no hi , and no self identification , and specially dont say i am a doctor or i am from a hospital"
             )
         else:
             system_prompt = "You are a helpful medical assistant. Provide safe, general advice.\n"
