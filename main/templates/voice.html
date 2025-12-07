@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedStral AI | Voice Diagnosis</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- 1. THEME VARIABLES --- */
+        :root {
+            /* NOIR (Dark) Defaults */
+            --bg-body: #000000;
+            --bg-panel: rgba(5, 5, 5, 0.95);
+            --bg-card: #080808;
+            --bg-icon: #000000;
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --border: #333333;
+            --border-highlight: #ffffff;
+            --radius: 2px;
+            
+            /* Functional Colors */
+            --record-active: #ef4444; 
+            --record-done: #22c55e;
+            
+            /* Switch Colors */
+            --switch-bg: #1a1a1a;
+            --switch-knob: #ffffff;
+        }
+
+        /* --- LIGHT MODE OVERRIDES --- */
+        body.light-mode {
+            --bg-body: #e5e5e5;
+            --bg-panel: rgba(244, 244, 245, 0.95);
+            --bg-card: #ffffff;
+            --bg-icon: #f4f4f5;
+            --text-main: #000000;
+            --text-muted: #52525b;
+            --border: #d4d4d8;
+            --border-highlight: #000000;
+            
+            --switch-bg: #d4d4d4;
+            --switch-knob: #000000;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* --- CUSTOM SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { 
+            background: var(--border); 
+            border-radius: 2px; 
+            border: 1px solid var(--bg-body); 
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-main); }
+
+        body { 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Space Grotesk', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Background Effect */
+        #neural-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.2;
+            pointer-events: none;
+            transition: filter 0.3s;
+        }
+
+        /* Invert canvas in light mode */
+        body.light-mode #neural-canvas {
+            filter: invert(1);
+            opacity: 0.15;
+        }
+
+        .app-container { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+        /* --- Sidebar Styling --- */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .logo-section {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        .nav-links { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+        .sidebar-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .sidebar-btn:hover { 
+            color: var(--text-main); 
+            border-color: var(--border);
+            background: rgba(128,128,128, 0.1);
+        }
+        
+        .sidebar-btn.active {
+            background: var(--text-main);
+            color: var(--bg-body);
+            border-color: var(--text-main);
+            font-weight: 700;
+        }
+
+        /* Sidebar Footer & Cyber Switch */
+        .sidebar-footer {
+            margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        .footer-status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono';
+        }
+
+        .status-dot { 
+            height: 6px; width: 6px; 
+            background-color: var(--text-main); 
+            border-radius: 50%; display: inline-block; margin-right: 6px; 
+            box-shadow: 0 0 5px var(--text-main);
+        }
+
+        /* --- CYBER SWITCH CSS --- */
+        .theme-switch-container {
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; user-select: none;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);
+        }
+        .theme-switch-wrapper {
+            position: relative; width: 44px; height: 22px;
+            background: var(--switch-bg); border: 1px solid var(--border);
+            border-radius: 2px; transition: 0.3s;
+        }
+        .theme-switch-knob {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: var(--switch-knob); border-radius: 1px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* Active State (Light Mode) */
+        body.light-mode .theme-switch-knob { transform: translateX(22px); }
+        .theme-switch-container:hover .theme-label { color: var(--text-main); }
+
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header-section { margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        .header-section h2 { 
+            font-size: 1.5rem; font-weight: 600; letter-spacing: -1px; 
+            text-transform: uppercase; margin-bottom: 5px;
+        }
+        .header-section p { 
+            color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; 
+        }
+
+        /* --- Workspace Grid --- */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+            height: 100%;
+            max-height: calc(100vh - 120px);
+        }
+
+        /* --- Left Panel: Controls --- */
+        .control-panel {
+            background: var(--bg-panel);
+            border-radius: var(--radius);
+            padding: 24px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(5px);
+            transition: background 0.3s;
+        }
+
+        .panel-title { 
+            font-family: 'JetBrains Mono'; font-size: 0.9rem; text-transform: uppercase; 
+            color: var(--text-muted); margin-bottom: 20px; 
+            display: flex; align-items: center; justify-content: space-between; 
+            border-bottom: 1px solid var(--border); padding-bottom: 10px;
+        }
+        
+        .step-counter { 
+            font-size: 0.7rem; background: transparent; border: 1px solid var(--border); 
+            padding: 2px 8px; color: var(--text-main); 
+        }
+
+        /* Recording Cards */
+        .record-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
+
+        .record-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .record-card:hover { border-color: var(--text-main); transform: translateX(2px); }
+        
+        .card-icon-box {
+            width: 48px; height: 48px;
+            background: var(--bg-icon);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            transition: 0.3s;
+        }
+
+        .record-card:hover .card-icon-box { color: var(--text-main); border-color: var(--text-main); }
+
+        .card-content { flex: 1; }
+        .card-label { 
+            font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 4px; 
+            font-family: 'JetBrains Mono'; text-transform: uppercase; 
+        }
+        .status-text { font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono'; }
+
+        /* ACTIVE / RECORDING STATE */
+        .record-card.recording { border-color: var(--record-active); background: rgba(239, 68, 68, 0.05); }
+        .record-card.recording .card-icon-box { 
+            border-color: var(--record-active); color: var(--record-active); 
+            animation: pulse-red 1.5s infinite; 
+        }
+        .record-card.recording .status-text { color: var(--record-active); font-weight: 600; }
+        .record-card.recording .card-label { color: var(--record-active); }
+
+        /* DONE STATE */
+        .record-card.done { border-color: var(--record-done); background: rgba(34, 197, 94, 0.05); }
+        .record-card.done .card-icon-box { border-color: var(--record-done); color: var(--record-done); }
+        .record-card.done .status-text { color: var(--record-done); }
+        .record-card.done .card-label { color: var(--record-done); }
+
+        @keyframes pulse-red { 
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+        }
+
+        .action-arrow i { color: var(--border); transition: 0.3s; }
+        .record-card:hover .action-arrow i { color: var(--text-main); }
+
+        /* Action Button */
+        .action-btn {
+            background: var(--text-main);
+            color: var(--bg-body);
+            border: none;
+            padding: 16px;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: auto;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono';
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .action-btn:hover:not(:disabled) { opacity: 0.8; }
+        .action-btn:disabled { background: transparent; border: 1px solid var(--border); color: var(--border); cursor: not-allowed; }
+
+        /* --- Right Panel: Results --- */
+        .result-panel {
+            background: var(--bg-panel);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 30px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+            transition: background 0.3s;
+        }
+
+        .result-panel h3 { font-family: 'JetBrains Mono'; font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); }
+
+        .placeholder-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            text-align: center;
+            font-family: 'JetBrains Mono';
+        }
+
+        .placeholder-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.2; }
+        .placeholder-state h4 { margin-bottom: 8px; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px;}
+        .placeholder-state p { font-size: 0.8rem; }
+
+        #analysisResult {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono';
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .workspace-grid { grid-template-columns: 1fr; overflow-y: auto; max-height: none; }
+            .sidebar { width: 80px; padding: 16px 10px; }
+            .sidebar span, .logo-section span, .sidebar-footer div, .theme-label { display: none; }
+            .logo-section, .sidebar-btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="neural-canvas"></canvas>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-section">
+                <i class="fa-solid fa-square-full fa-xs"></i>
+                <span>MedStral_AI</span>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="index.html" class="sidebar-btn">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span>Chat Assistant</span>
+                </a>
+                <a href="voice.html" class="sidebar-btn active">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Voice Analysis</span>
+                </a>
+                <a href="vision.html" class="sidebar-btn">
+                    <i class="fa-solid fa-eye"></i>
+                    <span>X-Ray Vision</span>
+                </a>
+                <a href="about.html" class="sidebar-btn">
+                    <i class="fa-solid fa-info"></i>
+                    <span>About System</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="theme-switch-container" onclick="toggleTheme()">
+                    <div class="theme-switch-wrapper">
+                        <div class="theme-switch-knob"></div>
+                    </div>
+                    <span id="themeLabel" class="theme-label" style="letter-spacing:1px; transition:0.3s;">NOIR_MODE</span>
+                </div>
+
+                <div class="footer-status-row">
+                    <div style="margin-top:10px;"><span class="status-dot"></span> SYSTEM ONLINE</div>
+                    <button onclick="logout()" style="background:none; border:none; color: var(--text-muted); cursor:pointer; font-size:0.8rem; display:flex; align-items:center; gap:8px; font-family: 'JetBrains Mono'; text-transform: uppercase;">
+                        <i class="fa-solid fa-power-off"></i> <span>Terminate</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <div class="header-section">
+                <h2>Respiratory Diagnosis</h2>
+                <p>Spectral Decomposition | Audio Biomarker Analysis.</p>
+            </div>
+
+            <div class="workspace-grid">
+                
+                <div class="control-panel">
+                    <div class="panel-title">
+                        Sampling Sequence
+                        <span class="step-counter">3 STEPS</span>
+                    </div>
+
+                    <div class="record-list">
+                        <div class="record-card" id="card-cough" onclick="recordSample('cough')">
+                            <div class="card-icon-box"><i class="fa-solid fa-head-side-cough"></i></div>
+                            <div class="card-content">
+                                <span class="card-label">Cough</span>
+                                <span class="status-text" id="status-cough">AWAITING INPUT (4s)</span>
+                            </div>
+                            <div class="action-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                        </div>
+
+                        <div class="record-card" id="card-breath" onclick="recordSample('breath')">
+                            <div class="card-icon-box"><i class="fa-solid fa-lungs"></i></div>
+                            <div class="card-content">
+                                <span class="card-label">Breath</span>
+                                <span class="status-text" id="status-breath">AWAITING INPUT (4s)</span>
+                            </div>
+                            <div class="action-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                        </div>
+
+                        <div class="record-card" id="card-speech" onclick="recordSample('speech')">
+                            <div class="card-icon-box"><i class="fa-solid fa-comments"></i></div>
+                            <div class="card-content">
+                                <span class="card-label">Speech</span>
+                                <span class="status-text" id="status-speech">AWAITING INPUT (4s)</span>
+                            </div>
+                            <div class="action-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 20px; font-size: 0.75rem; color: var(--text-muted); background: var(--bg-card); padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); font-family: 'JetBrains Mono';">
+                        <i class="fa-solid fa-circle-info" style="color: var(--text-main); margin-right: 5px;"></i>
+                        ENSURE LOW NOISE FLOOR BEFORE RECORDING.
+                    </div>
+
+                    <button id="analyzeBtn" onclick="submitDiagnosis()" disabled class="action-btn">
+                        <i class="fa-solid fa-microscope"></i> Run Diagnostics
+                    </button>
+                </div>
+
+                <div class="result-panel">
+                    <div style="margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                        <h3>Diagnostic Report</h3>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono';">MEDSTRAL NEURAL ENGINE</div>
+                    </div>
+                    
+                    <div id="result-container" style="flex:1; position:relative;">
+                        <div id="placeholder-view" class="placeholder-state">
+                            <i class="fa-solid fa-wave-square"></i>
+                            <h4>System Standby</h4>
+                            <p>Complete all three data points to generate assessment.</p>
+                        </div>
+
+                        <div id="analysisResult" style="display:none; animation: fadeIn 0.5s;"></div>
+                        
+                        <div id="voiceLoading" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.9); flex-direction:column; align-items:center; justify-content:center;">
+                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:2rem; color:var(--text-main); margin-bottom:15px;"></i>
+                            <p style="font-weight:600; font-family: 'JetBrains Mono'; text-transform: uppercase;">Analyzing Spectrograms...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/voice.js"></script>
+    
+    <script>
+        // --- 1. THEME LOGIC ---
+        const themeLabel = document.getElementById('themeLabel');
+        
+        // Initialize on Load
+        const savedTheme = localStorage.getItem('medstral-theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+        }
+
+        // Toggle Function
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                localStorage.setItem('medstral-theme', 'light');
+                if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+            } else {
+                localStorage.setItem('medstral-theme', 'dark');
+                if(themeLabel) themeLabel.innerText = "NOIR_MODE";
+            }
+        }
+
+        // --- 2. FUNCTIONALITY LOGIC ---
+        // Intercept the original submit function to handle UI states
+        const originalSubmitDiag = window.submitDiagnosis;
+        window.submitDiagnosis = function() {
+            // Show loading state
+            document.getElementById('placeholder-view').style.display = 'none';
+            document.getElementById('analysisResult').style.display = 'none';
+            document.getElementById('voiceLoading').style.display = 'flex';
+
+            // Call original (assumes voice.js populates #analysisResult and unhides it)
+            if(typeof originalSubmitDiag === 'function') {
+                originalSubmitDiag();
+                
+                // Watch for changes to hide the loader
+                const observer = new MutationObserver(function(mutations) {
+                    document.getElementById('voiceLoading').style.display = 'none';
+                    document.getElementById('analysisResult').style.display = 'block';
+                    observer.disconnect();
+                });
+                observer.observe(document.getElementById('analysisResult'), { childList: true, subtree: true, characterData: true });
+            }
+        };
+
+        // --- 3. PARTICLE ANIMATION ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.size = Math.random() * 1.5 + 0.5;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < (width * height) / 15000; i++) particles.push(new Particle());
+        }
+
+        function connect() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let d = (particles[a].x - particles[b].x)**2 + (particles[a].y - particles[b].y)**2;
+                    if (d < (width/9) * (height/9)) {
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - d/25000 * 0.1})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            connect();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

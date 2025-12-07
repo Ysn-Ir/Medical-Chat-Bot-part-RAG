@@ -3,80 +3,494 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedRAG AI | Intelligent Medical Assistant</title>
+    <title>MedStral AI | Chat Assistant</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
-    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* --- 1. THEME VARIABLES --- */
+        :root {
+            /* Default (NOIR/DARK) */
+            --bg-body: #000000;
+            --bg-panel: #050505;
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --border: #333333;
+            --border-highlight: #ffffff;
+            --accent: #ffffff;
+            
+            --msg-user-bg: #ffffff;
+            --msg-user-text: #000000;
+            --msg-bot-bg: #0a0a0a;
+            
+            --switch-bg: #1a1a1a;
+            --switch-knob: #ffffff;
+            
+            --radius: 2px;
+        }
+
+        /* --- LIGHT MODE OVERRIDES --- */
+        body.light-mode {
+            --bg-body: #e5e5e5;
+            --bg-panel: #f4f4f5;
+            --text-main: #000000;
+            --text-muted: #52525b;
+            --border: #d4d4d8;
+            --border-highlight: #000000;
+            --accent: #000000;
+            
+            --msg-user-bg: #000000;
+            --msg-user-text: #ffffff;
+            --msg-bot-bg: #ffffff;
+
+            --switch-bg: #d4d4d4;
+            --switch-knob: #000000;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* --- CUSTOM SCROLLBAR --- */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { 
+            background: var(--border); 
+            border-radius: 2px; 
+            border: 1px solid var(--bg-body); 
+        }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-main); }
+
+        body { 
+            background-color: var(--bg-body); 
+            color: var(--text-main); 
+            height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Space Grotesk', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Background Effect */
+        #neural-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.2;
+            pointer-events: none;
+            transition: filter 0.3s;
+        }
+
+        /* Invert canvas in light mode so particles become black */
+        body.light-mode #neural-canvas {
+            filter: invert(1);
+            opacity: 0.15;
+        }
+
+        .app-container { display: flex; height: 100vh; position: relative; z-index: 1; }
+
+        /* --- Sidebar Styling --- */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            z-index: 10;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .logo-section {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        .nav-links { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+
+        .sidebar-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            text-decoration: none;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .sidebar-btn:hover { 
+            color: var(--text-main); 
+            border-color: var(--border);
+            background: rgba(128,128,128, 0.1);
+        }
+        
+        .sidebar-btn.active {
+            background: var(--text-main);
+            color: var(--bg-body);
+            border-color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .sidebar-section-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            margin-top: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 5px;
+        }
+
+        /* Form Controls */
+        select, input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            outline: none;
+            transition: 0.3s;
+        }
+        select:focus, input[type="text"]:focus { border-color: var(--text-main); }
+
+        .index-controls { display: flex; gap: 5px; margin-bottom: 8px; }
+        
+        .plus-btn {
+            background: transparent; color: var(--text-main);
+            border: 1px solid var(--border); border-radius: var(--radius); 
+            width: 35px; cursor: pointer;
+            font-family: 'JetBrains Mono'; transition: 0.2s;
+        }
+        .plus-btn:hover { background: var(--text-main); color: var(--bg-body); }
+
+        #createIndexContainer {
+            margin-top: 8px; display: none; flex-direction: column; gap: 5px;
+        }
+        .create-confirm-btn {
+            background: var(--text-main); color: var(--bg-body); border: none;
+            padding: 6px; border-radius: var(--radius); cursor: pointer; 
+            font-family: 'JetBrains Mono'; font-size: 0.7rem; text-transform: uppercase;
+        }
+
+        /* Upload Area */
+        .upload-container {
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-top: 10px;
+            background: rgba(128,128,128, 0.05);
+        }
+        .upload-container:hover { border-color: var(--text-main); background: rgba(128,128,128, 0.1); }
+        .upload-icon { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 8px; transition: 0.3s; }
+        .upload-container:hover .upload-icon { color: var(--text-main); }
+        
+        .upload-container p { font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono'; }
+        .browse-link { color: var(--text-main); text-decoration: underline; }
+        .file-name { font-size: 0.7rem; color: var(--text-main); margin-top: 5px; word-break: break-all; font-family: 'JetBrains Mono'; }
+        
+        #uploadBtn {
+            width: 100%; margin-top: 10px; padding: 8px;
+            background: transparent; color: var(--text-main);
+            border: 1px solid var(--text-main); border-radius: var(--radius); cursor: pointer;
+            font-family: 'JetBrains Mono'; font-size: 0.75rem; text-transform: uppercase;
+            transition: 0.2s;
+        }
+        #uploadBtn:hover:not(:disabled) { background: var(--text-main); color: var(--bg-body); }
+        #uploadBtn:disabled { opacity: 0.3; border-color: var(--border); cursor: not-allowed; }
+
+        /* Sidebar Footer & Cyber Switch */
+        .sidebar-footer {
+            margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        
+        .footer-status-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono';
+        }
+
+        /* --- CYBER SWITCH DESIGN --- */
+        .theme-switch-container {
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; user-select: none;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);
+        }
+        .theme-switch-wrapper {
+            position: relative; width: 44px; height: 22px;
+            background: var(--switch-bg); border: 1px solid var(--border);
+            border-radius: 2px; transition: 0.3s;
+        }
+        .theme-switch-knob {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: var(--switch-knob); border-radius: 1px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* Active State (Light Mode) */
+        body.light-mode .theme-switch-knob { transform: translateX(22px); }
+        .theme-switch-container:hover .theme-label { color: var(--text-main); }
+
+        /* --- Main Chat Area --- */
+        .chat-interface {
+            flex: 1; display: flex; flex-direction: column;
+            background: transparent; position: relative;
+        }
+
+        .chat-header {
+            padding: 20px 32px;
+            background: var(--bg-body); /* Opaque for scrolling */
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.3s;
+        }
+        .chat-header h3 { font-size: 1.2rem; font-weight: 600; color: var(--text-main); letter-spacing: -1px; text-transform: uppercase; }
+        .chat-header p { color: var(--text-muted); font-size: 0.8rem; font-family: 'JetBrains Mono'; }
+        
+        .settings-toggle {
+            background: transparent; border: 1px solid var(--border);
+            width: 35px; height: 35px; border-radius: var(--radius);
+            color: var(--text-muted); cursor: pointer; transition: 0.2s;
+        }
+        .settings-toggle:hover { color: var(--text-main); border-color: var(--text-main); }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: absolute; top: 70px; right: 32px; width: 300px;
+            background: var(--bg-panel); border: 1px solid var(--text-main);
+            border-radius: var(--radius); padding: 20px;
+            z-index: 100; display: none;
+        }
+        .settings-panel.active { display: block; }
+        .settings-panel h4 { margin-bottom: 15px; color: var(--text-main); font-family: 'JetBrains Mono'; text-transform: uppercase; font-size: 0.9rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        
+        .setting-item { margin-bottom: 15px; }
+        .setting-item label { display: block; font-size: 0.75rem; margin-bottom: 8px; color: var(--text-muted); font-family: 'JetBrains Mono'; text-transform: uppercase; }
+        .setting-item textarea { width: 100%; padding: 8px; background: var(--bg-body); border: 1px solid var(--border); color: var(--text-main); resize: vertical; font-family: 'JetBrains Mono'; font-size: 0.8rem; }
+        .setting-item input[type="range"] { width: 100%; accent-color: var(--text-main); }
+        
+        .close-settings-btn {
+            width: 100%; padding: 8px; background: var(--text-main); border: none;
+            border-radius: var(--radius); color: var(--bg-body); cursor: pointer;
+            font-family: 'JetBrains Mono'; text-transform: uppercase; font-size: 0.8rem; font-weight: bold;
+        }
+        .close-settings-btn:hover { opacity: 0.9; }
+
+        /* Chat Window */
+        .chat-window {
+            flex: 1; overflow-y: auto; padding: 20px 32px;
+            display: flex; flex-direction: column; gap: 20px;
+            scrollbar-gutter: stable;
+        }
+
+        .message {
+            display: flex; gap: 15px; max-width: 80%;
+            padding: 20px; border-radius: var(--radius);
+            line-height: 1.6; font-size: 0.95rem;
+            position: relative;
+        }
+        
+        /* BOT MESSAGE */
+        .message.bot {
+            align-self: flex-start;
+            background: var(--msg-bot-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        
+        /* USER MESSAGE */
+        .message.user {
+            align-self: flex-end;
+            background: var(--msg-user-bg);
+            color: var(--msg-user-text);
+            flex-direction: row-reverse;
+            border: 1px solid var(--border);
+        }
+        
+        .avatar {
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 0; flex-shrink: 0;
+            font-size: 0.9rem;
+        }
+        .bot .avatar { color: var(--text-main); border: 1px solid var(--border); }
+        .user .avatar { color: var(--msg-user-text); border: 1px solid var(--msg-user-text); }
+
+        /* Input Area */
+        .input-area {
+            padding: 24px 32px;
+            background: var(--bg-body);
+            border-top: 1px solid var(--border);
+        }
+        
+        .input-wrapper {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            display: flex; align-items: center; gap: 10px;
+            transition: border 0.2s;
+        }
+        .input-wrapper:focus-within { border-color: var(--text-main); }
+
+        .input-wrapper input {
+            flex: 1; border: none; outline: none; font-size: 0.95rem; padding: 5px;
+            background: transparent; color: var(--text-main); font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        #chatMicBtn, #sendBtn {
+            background: none; border: 1px solid transparent; cursor: pointer;
+            width: 35px; height: 35px; border-radius: var(--radius);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        
+        #chatMicBtn:hover { border-color: var(--border); color: var(--text-main); }
+        #chatMicBtn.recording { color: #ef4444; animation: pulse 1.5s infinite; border-color: #ef4444; }
+        
+        #sendBtn { border: 1px solid var(--border); color: var(--text-main); }
+        #sendBtn:hover { background: var(--text-main); color: var(--bg-body); border-color: var(--text-main); }
+
+        .disclaimer {
+            text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 12px;
+            font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+        }
+
+        .dot.online {
+            height: 6px; width: 6px; background-color: var(--text-main);
+            border-radius: 50%; display: inline-block; margin-right: 6px;
+            box-shadow: 0 0 5px var(--text-main);
+        }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .content code { font-family: 'JetBrains Mono'; background: rgba(128,128,128,0.1); padding: 2px 4px; border: 1px solid var(--border); font-size: 0.85em; }
+    </style>
 </head>
 <body>
+
+    <canvas id="neural-canvas"></canvas>
 
     <div class="app-container">
         <aside class="sidebar">
             <div class="logo-section">
-                <i class="fa-solid fa-heart-pulse"></i> <span>MedRAG AI</span>
+                <i class="fa-solid fa-square-full fa-xs"></i>
+                <span>MedStral_AI</span>
             </div>
-            <div class="language-container" style="margin-bottom: 15px; padding: 10px; background: #fafafa; border: 1px solid var(--border-color); border-radius: 8px;">
-                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 5px;">
-                    LANGUAGE / LANGUE / اللغة
-                </label>
-                <select id="languageSelect" onchange="changeLanguage(this.value)" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; font-weight: 500;">
-                    <option value="en" selected>EN </option>
-                    <option value="fr">FR </option>
-                    <option value="ar">AR</option>
+            
+             <nav class="nav-links">
+                <a href="index.html" class="sidebar-btn active">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span>Chat Assistant</span>
+                </a>
+                <a href="voice.html" class="sidebar-btn">
+                    <i class="fa-solid fa-wave-square"></i>
+                    <span>Voice Analysis</span>
+                </a>
+                <a href="vision.html" class="sidebar-btn ">
+                    <i class="fa-solid fa-eye"></i>
+                    <span>X-Ray Vision</span>
+                </a>
+                <a href="about.html" class="sidebar-btn">
+                    <i class="fa-solid fa-info"></i>
+                    <span>About System</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-section-title">Configuration</div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 8px; font-family: 'JetBrains Mono'; text-transform: uppercase;">Language</label>
+                <select id="languageSelect" onchange="changeLanguage(this.value)">
+                    <option value="en" selected>ENGLISH [EN]</option>
+                    <option value="fr">FRENCH [FR]</option>
+                    <option value="ar">ARABIC [AR]</option>
                 </select>
             </div>
+
             <div class="index-container">
-                <label class="index-label">
-                    PINECONE INDEX 
-                    <span id="refreshIndexBtn" onclick="loadIndexes()" title="Refresh"><i class="fa-solid fa-sync"></i></span>
+                <label style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 8px; font-family: 'JetBrains Mono'; text-transform: uppercase;">
+                    Vector Index
+                    <span id="refreshIndexBtn" onclick="loadIndexes()" style="cursor: pointer; float: right;" title="Refresh"><i class="fa-solid fa-rotate"></i></span>
                 </label>
                 <div class="index-controls">
                     <select id="indexSelect" onchange="switchIndex(this.value)"></select>
-                    <button onclick="toggleCreateInput()" title="New Index" class="plus-btn">+</button>
+                    <button onclick="toggleCreateInput()" class="plus-btn" title="Create New Index">+</button>
                 </div>
                 <div id="createIndexContainer">
-                    <input type="text" id="newIndexName" placeholder="new-index-name">
-                    <button onclick="createNewIndex()" class="create-confirm-btn">Create</button>
+                    <input type="text" id="newIndexName" placeholder="new_index_id">
+                    <button onclick="createNewIndex()" class="create-confirm-btn">INITIALIZE</button>
                 </div>
             </div>
 
-            <button class="sidebar-btn diagnosis-btn" onclick="openDiagnosisModal()">
-                <i class="fa-solid fa-stethoscope"></i> Check Sickness (Voice)
-            </button>
-
-            <div class="upload-container" id="drop-zone">
+            <div class="sidebar-section-title">Data Ingestion</div>
+            
+            <div class="upload-container" id="drop-zone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" hidden accept=".pdf,.txt">
-                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                <p>Drag PDF or <span class="browse-link" onclick="document.getElementById('fileInput').click()">Browse</span></p>
+                <div class="upload-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+                <p>DROP PDF/TXT OR <span class="browse-link">BROWSE</span></p>
                 <div id="file-name" class="file-name"></div>
-                <button id="uploadBtn" onclick="uploadFile()" disabled>Analyze Document</button>
+                <button id="uploadBtn" onclick="uploadFile(event); event.stopPropagation();" disabled>
+                    <i class="fa-solid fa-microchip"></i> Process Data
+                </button>
             </div>
             
             <div class="sidebar-footer">
-                <span class="dot online"></span> System Operational
+                <div class="theme-switch-container" onclick="toggleTheme()">
+                    <div class="theme-switch-wrapper">
+                        <div class="theme-switch-knob"></div>
+                    </div>
+                    <span id="themeLabel" class="theme-label" style="letter-spacing:1px; transition:0.3s;">NOIR_MODE</span>
+                </div>
+
+                <div class="footer-status-row">
+                    <div><span class="dot online"></span> SYSTEM ONLINE</div>
+                    <button onclick="logout()" title="Logout" style="background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1rem;">
+                        <i class="fa-solid fa-power-off"></i>
+                    </button>
+                </div>
             </div>
         </aside>
 
         <main class="chat-interface">
             <header class="chat-header">
                 <div class="header-info">
-                    <h3>Medical Assistant</h3>
-                    <p>AI-powered analysis & Voice Diagnostics</p>
+                    <h3>Medical Assistant  V.1.0</h3>
+                    <p>> RAG INTEGRATION ACTIVE</p>
                 </div>
-                <button class="settings-toggle" onclick="toggleSettings()">
-                    <i class="fa-solid fa-gear"></i>
-                </button>
+                <button class="settings-toggle" onclick="toggleSettings()"><i class="fa-solid fa-sliders"></i></button>
             </header>
 
             <div id="settingsPanel" class="settings-panel">
-                <h4>Configuration</h4>
+                <h4>Model Parameters</h4>
                 <div class="setting-item">
                     <label>System Prompt</label>
-                    <textarea id="sysPrompt" rows="4" placeholder="You are a helpful medical assistant..."></textarea>
+                    <textarea id="sysPrompt" rows="4" placeholder="DEFINE SYSTEM BEHAVIOR..."></textarea>
                 </div>
                 <div class="setting-item">
                     <label>Max Tokens: <span id="tokenVal">200</span></label>
@@ -86,65 +500,131 @@
                     <label>Temperature: <span id="tempVal">0.5</span></label>
                     <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.5" oninput="document.getElementById('tempVal').textContent=this.value">
                 </div>
-                <button class="close-settings-btn" onclick="toggleSettings()">Close</button>
+                <button class="close-settings-btn" onclick="toggleSettings()">CLOSE TERMINAL</button>
             </div>
 
             <div class="chat-window" id="chatbox">
                 <div class="message bot">
-                    <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
-                    <div class="content">Hello. I am your Medical RAG Assistant. Upload a report, ask questions, or use the voice diagnostics tool.</div>
+                    <div class="avatar">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div class="content">
+                        <div style="margin-bottom: 10px;">
+                            <strong>MEDSTRAL CORE ONLINE</strong><br>
+                            I am ready to assist with medical inquiries, diagnostics, and document analysis. How can I help you today?
+                        </div>
+                        
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); direction: rtl; text-align: right; font-family: 'Inter', sans-serif;">
+                            <strong>نظام ميدسترال جاهز.</strong><br>
+                            أنا مستعد للمساعدة في الاستفسارات الطبية، التشخيص، وتحليل المستندات. كيف يمكنني مساعدتك اليوم؟
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div class="input-area">
                 <div class="input-wrapper">
-                    <button id="chatMicBtn" onclick="toggleChatRecording()">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
-                    <input type="text" id="userInput" placeholder="Ask details..." autocomplete="off">
-                    <button id="sendBtn" onclick="sendMessage()">
-                        <i class="fa-solid fa-paper-plane"></i>
-                    </button>
+                    <button id="chatMicBtn" onclick="toggleChatRecording()"><i class="fa-solid fa-microphone-lines"></i></button>
+                    <input type="text" id="userInput" placeholder="ENTER QUERY..." autocomplete="off">
+                    <button id="sendBtn" onclick="sendMessage()"><i class="fa-solid fa-arrow-right"></i></button>
                 </div>
-                <p class="disclaimer">AI can make mistakes. Please verify critical medical information.</p>
+                <p class="disclaimer">Outputs generated by AI. Verification required for critical use.</p>
             </div>
         </main>
     </div>
 
-    <div id="voiceModal" class="modal-overlay">
-        <div class="modal-content">
-            <h3>Respiratory Diagnosis</h3>
-            <p class="modal-subtitle">Record all three samples (4s each) to analyze.</p>
-
-            <div class="record-grid">
-                <div class="record-card" id="card-cough" onclick="recordSample('cough')">
-                    <i class="fa-solid fa-head-side-cough icon"></i>
-                    <div class="label">Cough</div>
-                    <div class="status-text" id="status-cough">Click to Record</div>
-                </div>
-                <div class="record-card" id="card-breath" onclick="recordSample('breath')">
-                    <i class="fa-solid fa-lungs icon"></i>
-                    <div class="label">Breath</div>
-                    <div class="status-text" id="status-breath">Click to Record</div>
-                </div>
-                <div class="record-card" id="card-speech" onclick="recordSample('speech')">
-                    <i class="fa-solid fa-comments icon"></i>
-                    <div class="label">Speech</div>
-                    <div class="status-text" id="status-speech">Click to Record</div>
-                </div>
-            </div>
-
-            <div id="analysisResult" class="analysis-result"></div>
-
-            <div class="modal-actions">
-                <button id="analyzeBtn" onclick="submitDiagnosis()" disabled>Analyze Samples</button>
-                <button class="cancel-btn" onclick="closeVoiceModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
     <div id="toast-container"></div>
+    <script src="/static/js/common.js"></script>
+    <script src="/static/js/chat.js"></script>
 
-    <script src="/static/js/script.js"></script>
+    <script>
+        // --- THEME LOGIC ---
+        const themeLabel = document.getElementById('themeLabel');
+        
+        // 1. Initialize on Load
+        const savedTheme = localStorage.getItem('medstral-theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+        }
+
+        // 2. Toggle Function
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                localStorage.setItem('medstral-theme', 'light');
+                if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+            } else {
+                localStorage.setItem('medstral-theme', 'dark');
+                if(themeLabel) themeLabel.innerText = "NOIR_MODE";
+            }
+        }
+
+        // --- PARTICLE BACKGROUND ---
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.size = Math.random() * 1.5 + 0.5;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < (width * height) / 15000; i++) particles.push(new Particle());
+        }
+
+        function connect() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let d = (particles[a].x - particles[b].x)**2 + (particles[a].y - particles[b].y)**2;
+                    if (d < (width/9) * (height/9)) {
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - d/25000 * 0.1})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            connect();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
 </body>
 </html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedStral AI | System Architecture</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 1. THEME VARIABLES --- */
+        :root {
+            /* NOIR (Dark) Defaults */
+            --bg-body: #000000;
+            --bg-card: #0a0a0a;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border: #333333;
+            --border-highlight: #ffffff;
+            --accent: #ffffff;
+            
+            --switch-bg: #1a1a1a;
+            --switch-knob: #ffffff;
+            --code-bg: #111;
+        }
+
+        /* --- LIGHT MODE OVERRIDES --- */
+        body.light-mode {
+            --bg-body: #e5e5e5;
+            --bg-card: #ffffff;
+            --text-main: #000000;
+            --text-muted: #52525b;
+            --border: #d4d4d8;
+            --border-highlight: #000000;
+            --accent: #000000;
+            
+            --switch-bg: #d4d4d4;
+            --switch-knob: #000000;
+            --code-bg: #f4f4f5;
+        }
+
+        /* Hide default cursor to use custom one */
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none !important; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* CUSTOM CURSOR STYLE */
+        #custom-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border: 1px solid var(--text-main);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none; /* Let clicks pass through */
+            z-index: 9999;
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+            mix-blend-mode: difference;
+        }
+        
+        /* Cursor reacts when hovering clickable items */
+        body.hovering #custom-cursor {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-main);
+        }
+
+        /* Interactive Canvas Background */
+        #neural-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.4;
+            pointer-events: none;
+            transition: filter 0.3s;
+        }
+        
+        /* Invert canvas in light mode */
+        body.light-mode #neural-canvas {
+            filter: invert(1);
+            opacity: 0.15;
+        }
+
+        /* --- 2. LAYOUT & TYPOGRAPHY --- */
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 2; }
+        
+        .nav {
+            padding: 30px 0;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1.2rem; letter-spacing: -1px; }
+        
+        .back-link {
+            color: var(--text-main); text-decoration: none;
+            border: 1px solid var(--border); padding: 8px 16px; border-radius: 2px;
+            font-size: 0.8rem; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .back-link:hover { background: var(--text-main); color: var(--bg-body); }
+
+        /* --- 3. HERO --- */
+        .hero { padding: 100px 0 60px; border-bottom: 1px solid var(--border); }
+        
+        h1 {
+            font-size: 4rem; line-height: 0.9; font-weight: 600; letter-spacing: -2px;
+            margin-bottom: 30px; text-transform: uppercase;
+        }
+        
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace; color: var(--text-muted);
+            max-width: 600px; line-height: 1.6; font-size: 0.9rem;
+            border-left: 2px solid var(--text-main); padding-left: 20px;
+        }
+
+        /* --- 4. GRID SYSTEM --- */
+        .grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+            background: var(--border); /* Creates the border lines */
+            border: 1px solid var(--border);
+            margin-top: 60px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            padding: 40px;
+            transition: background 0.3s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            background: rgba(128,128,128,0.05);
+        }
+        
+        .card-icon { font-size: 2rem; margin-bottom: 20px; color: var(--text-main); }
+        .card h3 { font-size: 1.5rem; margin-bottom: 15px; font-weight: 600; letter-spacing: -1px; }
+        .card h4 { font-family: 'JetBrains Mono'; font-size: 0.9rem; color: var(--text-main); margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; }
+        .card p, .card li { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; list-style: none; margin-bottom: 5px; }
+        
+        .grid-span-2 { grid-column: span 2; }
+        .grid-span-3 { grid-column: span 3; }
+
+        /* Tags */
+        .tags { display: flex; gap: 8px; margin-top: 25px; flex-wrap: wrap; }
+        .tag {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            padding: 4px 8px; border: 1px solid var(--border);
+            color: var(--text-muted); 
+        }
+
+        /* Code Block for Project Structure */
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--code-bg);
+            padding: 20px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            white-space: pre;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+
+        /* API Table */
+        .api-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; margin-top: 20px; }
+        .api-table th { text-align: left; border-bottom: 1px solid var(--border); padding: 10px; color: var(--text-main); }
+        .api-table td { border-bottom: 1px solid var(--border); padding: 10px; color: var(--text-muted); }
+        .method { color: #22c55e; font-weight: bold; }
+
+        /* CREATOR LINKS - SPECIFIC STYLING */
+        .social-row { display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        
+        .social-link { 
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none;
+            color: var(--text-muted); 
+            font-size: 0.9rem; 
+            font-family: 'JetBrains Mono';
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 2px;
+            transition: 0.3s; 
+        }
+        
+        .social-link i { font-size: 1.1rem; }
+        
+        .social-link:hover { 
+            color: var(--bg-body); 
+            background: var(--text-main); 
+            border-color: var(--text-main);
+            transform: translateY(-2px); 
+        }
+
+        /* --- 5. FOOTER & SWITCH --- */
+        footer {
+            border-top: 1px solid var(--border); padding: 40px 0;
+            display: flex; justify-content: space-between; align-items: center;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-muted);
+        }
+
+        /* Cyber Switch */
+        .theme-switch-container {
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; user-select: none;
+            text-transform: uppercase;
+        }
+        .theme-switch-wrapper {
+            position: relative; width: 44px; height: 22px;
+            background: var(--switch-bg); border: 1px solid var(--border);
+            border-radius: 2px; transition: 0.3s;
+        }
+        .theme-switch-knob {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: var(--switch-knob); border-radius: 1px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+        body.light-mode .theme-switch-knob { transform: translateX(22px); }
+
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: 1fr; }
+            .grid-span-2, .grid-span-3 { grid-column: span 1; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="custom-cursor"></div>
+
+    <canvas id="neural-canvas"></canvas>
+
+    <div class="container">
+        <nav class="nav">
+            <div class="brand"> MEDSTRAL_AI</div>
+            <a href="/" class="back-link">Return to Chat</a>
+        </nav>
+
+        <header class="hero">
+            <h1>System<br>Architecture.</h1>
+            <div class="subtitle">
+                > VERSION: 1.0.0 [PRODUCTION READY]<br>
+                > BACKEND: FASTAPI MONOLITH<br>
+                > AI CORE: MISTRAL-7B (FINE-TUNED) + DENSENET121<br>
+                > Intelligent Multimodal Diagnostic Assistant.
+            </div>
+        </header>
+
+        <div class="grid">
+            
+            <div class="card grid-span-3">
+                <i class="fa-solid fa-layer-group card-icon"></i>
+                <h3>Project Overview</h3>
+                <p>MedRAG AI is an advanced, integrated medical assistant designed to democratize access to preliminary diagnostic tools. It bridges the gap between complex medical data (text, imaging, audio) and actionable insights by combining three distinct AI disciplines:</p>
+                <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h4 style="margin-top:0;">Generative AI</h4>
+                        <p style="font-size: 0.8rem;">Retrieval-Augmented Generation chatbot fine-tuned for safe, patient-centric communication.</p>
+                    </div>
+                    <div>
+                        <h4 style="margin-top:0;">Computer Vision</h4>
+                        <p style="font-size: 0.8rem;">Deep Learning model detecting 14 chest pathologies with Explainable AI (Grad-CAM).</p>
+                    </div>
+                    <div>
+                        <h4 style="margin-top:0;">Audio Diagnostics</h4>
+                        <p style="font-size: 0.8rem;">Signal processing unit analyzing respiratory biomarkers from cough and breath.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card grid-span-2">
+                <i class="fa-solid fa-brain card-icon"></i>
+                <h3>Module 1: RAG Chatbot</h3>
+                <p>Custom-trained version of Mistral-7B, optimized for patient-doctor interactions using QLoRA and Unsloth.</p>
+                
+                <h4>Training Details</h4>
+                <ul>
+                    <li>> Base Model: Mistral-7B-Instruct-v0.2</li>
+                    <li>> Dataset: mahfoos/Patient-Doctor-Conversation (~3k)</li>
+                    <li>> Rank (r): 16 | Precision: 4-bit</li>
+                    <li>> Safety: Explicitly trained to refuse prescribing medication.</li>
+                </ul>
+
+                <div class="tags">
+                    <span class="tag">LLM</span>
+                    <span class="tag">PINECONE</span>
+                    <span class="tag">LANGCHAIN</span>
+                    <span class="tag">QLoRA</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <i class="fa-solid fa-server card-icon"></i>
+                <h3>Tech Stack</h3>
+                <p><strong>Backend:</strong> FastAPI, Uvicorn, PyTorch, Transformers, LangChain.</p>
+                <p><strong>Database:</strong> SQLite (User/History), Pinecone (Vector).</p>
+                <p><strong>Frontend:</strong> Vanilla JS, CSS3 (Noir Theme), Canvas API.</p>
+                <div class="tags">
+                    <span class="tag">FASTAPI</span>
+                    <span class="tag">JWT</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <i class="fa-solid fa-eye card-icon"></i>
+                <h3>Module 2: Vision</h3>
+                <p>Automated radiology screening using DenseNet121 trained on CheXpert (224k images).</p>
+                <h4>Capabilities</h4>
+                <ul>
+                    <li>> 14 Pathologies (Pneumonia, Effusion, etc.)</li>
+                    <li>> U-Ones Policy for uncertainty.</li>
+                    <li>> Grad-CAM XAI Heatmaps.</li>
+                </ul>
+                <div class="tags">
+                    <span class="tag">PYTORCH</span>
+                    <span class="tag">OPENCV</span>
+                    <span class="tag">DENSENET</span>
+                </div>
+            </div>
+
+            <div class="card grid-span-2">
+                <i class="fa-solid fa-wave-square card-icon"></i>
+                <h3>Module 3: Voice Diagnostics</h3>
+                <p>Non-invasive diagnostics via spectral analysis. The ensemble CNN-RNN model decomposes audio into Mel-Spectrograms to identify micro-patterns in coughs and breaths.</p>
+                <h4>Architecture</h4>
+                <ul>
+                    <li>> Input: 3 Samples (Cough, Breath, Speech)</li>
+                    <li>> Preprocessing: Librosa Mel-Spectrograms (128x128)</li>
+                    <li>> Model: CNN (Spatial) + LSTM (Temporal)</li>
+                </ul>
+                <div class="tags">
+                    <span class="tag">LIBROSA</span>
+                    <span class="tag">CNN-LSTM</span>
+                    <span class="tag">DSP</span>
+                </div>
+            </div>
+
+            <div class="card grid-span-3">
+                <i class="fa-solid fa-network-wired card-icon"></i>
+                <h3>API Endpoints</h3>
+                <div style="overflow-x: auto;">
+                    <table class="api-table">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Endpoint</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="method">POST</td><td>/token</td><td>Logs in a user and returns JWT.</td></tr>
+                            <tr><td class="method">POST</td><td>/chat</td><td>Sends query to LLM; returns RAG response.</td></tr>
+                            <tr><td class="method">POST</td><td>/analyze_xray</td><td>Uploads image; returns probabilities + Heatmap.</td></tr>
+                            <tr><td class="method">POST</td><td>/diagnose</td><td>Uploads 3 audio files; returns respiratory analysis.</td></tr>
+                            <tr><td class="method">POST</td><td>/upload</td><td>Ingests PDF/TXT into Vector Database.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card grid-span-3">
+                <i class="fa-solid fa-folder-tree card-icon"></i>
+                <h3>Project Structure</h3>
+                <div class="code-block">
+/MedRAG_Project
+├── main.py                 # FastAPI Entry Point
+├── auth.py                 # JWT Logic
+├── database.py             # SQLite Connection
+│
+├── model_service.py        # Mistral-7B + LoRA
+├── rag_service.py          # Pinecone & LangChain
+├── vision_service.py       # DenseNet121 & Grad-CAM
+├── voice_service.py        # Audio Processing
+│
+├── chexpert_model.pth      # X-Ray Weights
+├── medrag.db               # Local Database
+│
+├── templates/              # HTML Pages
+└── static/                 # CSS/JS Assets</div>
+            </div>
+
+            <div class="card grid-span-3">
+                <i class="fa-solid fa-user-astronaut card-icon"></i>
+                <h3>About The Architect</h3>
+                <div style="display: flex; gap: 40px; align-items: flex-start; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <p style="font-size: 1.1rem; color: var(--text-main); margin-bottom: 15px;"><strong>YSN-IR</strong></p>
+                        <p>I am a highly motivated computer science and data science student with a strong passion for artificial intelligence, software engineering, and graphics programming. I enjoy diving deep into complex technical concepts—from OpenGL and 3D rendering pipelines to machine learning, computer vision, and quantitative modeling. I have hands-on experience building Android applications with Kotlin and Firebase, as well as proficiency in C++, SFML, and multithreaded programming. My interests naturally push me toward understanding systems at a low level, exploring algorithms, and developing full-stack solutions. I’m driven by curiosity, a desire to master new technologies, and a long-term goal of becoming a skilled AI engineer capable of building real-world intelligent systems.</p>
+                    </div>
+                    <div>
+                        <h4 style="margin-top:0;">Connect</h4>
+                        <div class="social-row">
+                            <a href="https://github.com/Ysn-Ir" target="_blank" class="social-link">
+                                <i class="fa-brands fa-github"></i> GitHub
+                            </a>
+                            <a href="https://www.linkedin.com/in/yassine-ouali-1123b4235/" target="_blank" class="social-link">
+                                <i class="fa-brands fa-linkedin-in"></i> LinkedIn
+                            </a>
+                            <a href="https://huggingface.co/ysn-ir" target="_blank" class="social-link">
+                                <i class="fa-solid fa-face-mask"></i> Hugging Face
+                            </a>
+                            <a href="mailto:Oualiy419@gmail.com" class="social-link">
+                                <i class="fa-solid fa-envelope"></i> Contact
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card grid-span-3" style="border-top: 1px solid var(--border);">
+                <h3 style="color: var(--text-muted); font-size: 1rem;">⚖️ Legal Disclaimer</h3>
+                <p style="font-size: 0.8rem;">This tool is intended for educational and assistive purposes only. It utilizes artificial intelligence to analyze data patterns but does not replace professional medical diagnosis, advice, or treatment by a qualified healthcare provider. The safety filters in the LLM are designed to mitigate risk but cannot guarantee zero hallucinations.</p>
+            </div>
+
+        </div>
+
+        <footer>
+            <div class="theme-switch-container" onclick="toggleTheme()">
+                <div class="theme-switch-wrapper">
+                    <div class="theme-switch-knob"></div>
+                </div>
+                <span id="themeLabel" style="letter-spacing:1px; transition:0.3s; margin-left: 10px;">NOIR_MODE</span>
+            </div>
+            
+            <div>&copy; 2025 MedStral Project.</div>
+        </footer>
+    </div>
+
+    <script>
+        // --- 1. THEME LOGIC ---
+        const themeLabel = document.getElementById('themeLabel');
+        
+        const savedTheme = localStorage.getItem('medstral-theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                localStorage.setItem('medstral-theme', 'light');
+                if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+            } else {
+                localStorage.setItem('medstral-theme', 'dark');
+                if(themeLabel) themeLabel.innerText = "NOIR_MODE";
+            }
+        }
+
+        // --- 2. CUSTOM CURSOR & PARTICLE SYSTEM ---
+        const cursor = document.getElementById('custom-cursor');
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        
+        // Mouse Object tracking
+        const mouse = { x: -1000, y: -1000, radius: 150 };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            // Move custom cursor
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+        });
+
+        // Add hover class to body when hovering interactive elements
+        const interactiveElements = document.querySelectorAll('a, button, .card, .social-link, .theme-switch-container');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+        });
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2 + 1;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+
+                // Mouse Repulsion (Interactive Effect)
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < mouse.radius) {
+                   const force = (mouse.radius - distance) / mouse.radius;
+                   const directionX = (dx / distance) * force * 0.6;
+                   const directionY = (dy / distance) * force * 0.6;
+                   this.x -= directionX;
+                   this.y -= directionY;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const numberOfParticles = (width * height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function connect() {
+            for (let a = 0; a < particles.length; a++) {
+                // Connect particles to particles
+                for (let b = a; b < particles.length; b++) {
+                    let distance = ((particles[a].x - particles[b].x) ** 2) + ((particles[a].y - particles[b].y) ** 2);
+                    if (distance < (width/7) * (height/7)) {
+                        let opacityValue = 1 - (distance / 20000);
+                        ctx.strokeStyle = 'rgba(255, 255, 255,' + opacityValue * 0.15 + ')';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Connect particles to mouse
+                let mouseDistance = ((particles[a].x - mouse.x) ** 2) + ((particles[a].y - mouse.y) ** 2);
+                if (mouseDistance < 20000) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Always white wireframe
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[a].x, particles[a].y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, width, height);
+            
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            connect();
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

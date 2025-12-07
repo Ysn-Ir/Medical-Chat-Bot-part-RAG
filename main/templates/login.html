@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access Control | MedStral AI</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- 1. THEME VARIABLES --- */
+        :root {
+            /* NOIR (Dark) Defaults */
+            --bg-body: #000000;
+            --bg-card: rgba(5, 5, 5, 0.9);
+            --text-main: #ffffff;
+            --text-muted: #666666;
+            --border: #333333;
+            --radius: 2px;
+            --accent-error: #ef4444;
+            --accent-success: #22c55e;
+            
+            --switch-bg: #1a1a1a;
+            --switch-knob: #ffffff;
+        }
+
+        /* --- LIGHT MODE OVERRIDES --- */
+        body.light-mode {
+            --bg-body: #e5e5e5;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --text-main: #000000;
+            --text-muted: #52525b;
+            --border: #d4d4d8;
+            
+            --switch-bg: #d4d4d4;
+            --switch-knob: #000000;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: 'Space Grotesk', sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background-color: var(--bg-body); 
+            color: var(--text-main);
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Background Effect */
+        #neural-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.25;
+            pointer-events: none;
+            transition: filter 0.3s;
+        }
+        
+        /* Invert particles in light mode */
+        body.light-mode #neural-canvas {
+            filter: invert(1);
+            opacity: 0.15;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .card { 
+            background: var(--bg-card); 
+            padding: 50px 40px; 
+            border: 1px solid var(--border);
+            border-radius: var(--radius); 
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+
+        .card:hover { border-color: var(--text-muted); }
+
+        .brand-icon {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            animation: pulse-white 3s infinite;
+        }
+
+        h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            text-transform: uppercase;
+        }
+
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            margin: 8px 0; 
+            background: var(--bg-body);
+            border: 1px solid var(--border); 
+            border-radius: var(--radius);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        input:focus { border-color: var(--text-main); }
+        input::placeholder { color: var(--text-muted); text-transform: uppercase; }
+
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background: var(--text-main); 
+            color: var(--bg-body); 
+            border: none; 
+            border-radius: var(--radius); 
+            cursor: pointer; 
+            margin-top: 20px; 
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        button:hover { opacity: 0.8; }
+
+        .toggle { 
+            margin-top: 25px; 
+            font-size: 0.75rem; 
+            color: var(--text-muted); 
+            cursor: pointer; 
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            border-bottom: 1px solid transparent;
+            display: inline-block;
+            padding-bottom: 2px;
+            transition: 0.3s;
+        }
+        
+        .toggle:hover { color: var(--text-main); border-bottom-color: var(--text-main); }
+
+        #msg {
+            margin-top: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            min-height: 20px;
+        }
+
+        /* --- CYBER SWITCH CSS --- */
+        .theme-switch-container {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-top: 30px;
+            cursor: pointer; user-select: none;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+        .theme-switch-wrapper {
+            position: relative; width: 44px; height: 22px;
+            background: var(--switch-bg); border: 1px solid var(--border);
+            border-radius: 2px; transition: 0.3s;
+        }
+        .theme-switch-knob {
+            position: absolute; top: 2px; left: 2px;
+            width: 16px; height: 16px;
+            background: var(--switch-knob); border-radius: 1px;
+            transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* Active State (Light Mode) */
+        body.light-mode .theme-switch-knob { transform: translateX(22px); }
+        .theme-switch-container:hover .theme-label { color: var(--text-main); }
+
+
+        @keyframes pulse-white {
+            0% { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+            50% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.5); }
+            100% { text-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="neural-canvas"></canvas>
+
+    <div class="container">
+        <div class="card">
+            <div class="brand-icon">
+                <i class="fa-solid fa-fingerprint"></i>
+            </div>
+            
+            <h2 id="title">System Login</h2>
+            <div class="subtitle"> MedStral_AI</div>
+
+            <input type="text" id="username" placeholder="Username_ID" autocomplete="off">
+            <input type="password" id="password" placeholder="Access_Key">
+            
+            <button onclick="handleAuth()" id="actionBtn">Authenticate</button>
+            
+            <div class="toggle" onclick="toggleMode()" id="toggleText">Initialize New User Protocol</div>
+            
+            <p id="msg"></p>
+
+            <div class="theme-switch-container" onclick="toggleTheme()">
+                <div class="theme-switch-wrapper">
+                    <div class="theme-switch-knob"></div>
+                </div>
+                <span id="themeLabel" class="theme-label" style="letter-spacing:1px; transition:0.3s;">NOIR_MODE</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isLogin = true;
+        
+        function toggleMode() {
+            isLogin = !isLogin;
+            document.getElementById("title").innerText = isLogin ? "System Login" : "User Registration";
+            document.getElementById("actionBtn").innerText = isLogin ? "Authenticate" : "Register ID";
+            document.getElementById("toggleText").innerText = isLogin ? "Initialize New User Protocol" : "Return to Login Gateway";
+            document.getElementById("msg").innerText = ""; // Clear errors on toggle
+        }
+
+        async function handleAuth() {
+            const user = document.getElementById("username").value;
+            const pass = document.getElementById("password").value;
+            const msg = document.getElementById("msg");
+            
+            msg.innerText = "Processing...";
+            msg.style.color = "var(--text-muted)";
+            
+            const formData = new FormData();
+            formData.append("username", user);
+            formData.append("password", pass);
+
+            const endpoint = isLogin ? "/token" : "/register";
+            
+            try {
+                const res = await fetch(endpoint, { method: "POST", body: formData });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (isLogin) {
+                        localStorage.setItem("token", data.access_token);
+                        window.location.href = "/"; // Redirect to Chat
+                    } else {
+                        msg.style.color = "var(--accent-success)";
+                        msg.innerText = "Identity Created. Please Authenticate.";
+                        setTimeout(() => toggleMode(), 1500);
+                    }
+                } else {
+                    msg.style.color = "var(--accent-error)";
+                    msg.innerText = "> Error: " + data.detail;
+                }
+            } catch (e) { 
+                msg.style.color = "var(--accent-error)";
+                msg.innerText = "> Connection Failure"; 
+            }
+        }
+    </script>
+
+    <script>
+        const themeLabel = document.getElementById('themeLabel');
+        
+        // 1. Initialize on Load
+        const savedTheme = localStorage.getItem('medstral-theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+        }
+
+        // 2. Toggle Function
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            
+            if (body.classList.contains('light-mode')) {
+                localStorage.setItem('medstral-theme', 'light');
+                if(themeLabel) themeLabel.innerText = "LIGHT_MODE";
+            } else {
+                localStorage.setItem('medstral-theme', 'dark');
+                if(themeLabel) themeLabel.innerText = "NOIR_MODE";
+            }
+        }
+    </script>
+
+    <script>
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.size = Math.random() * 1.5 + 0.5;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < (width * height) / 12000; i++) particles.push(new Particle());
+        }
+
+        function connect() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    let d = (particles[a].x - particles[b].x)**2 + (particles[a].y - particles[b].y)**2;
+                    if (d < (width/9) * (height/9)) {
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - d/20000 * 0.1})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            connect();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

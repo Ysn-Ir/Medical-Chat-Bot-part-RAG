@@ -48,7 +48,7 @@ class MedicalLLM:
         - Focus on hydration, rest, mild self-care.
         Your goal: give safe, comforting, everyday advice."""
         
-        active_prompt = system_instruction if   default_prompt + ", but the user also specified this very important structuring prompt that is not to be ignored under any condition" + system_instruction else default_prompt
+        active_prompt =  default_prompt + ", but the user also specified this very important structuring prompt that is not to be ignored under any condition" + system_instruction if system_instruction   else default_prompt
 
         # Construct English Prompt
         if context:

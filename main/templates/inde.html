@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedRAG AI | Intelligent Medical Assistant</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-section">
+                <i class="fa-solid fa-heart-pulse"></i> <span>MedRAG AI</span>
+            </div>
+            <div class="language-container" style="margin-bottom: 15px; padding: 10px; background: #fafafa; border: 1px solid var(--border-color); border-radius: 8px;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-light); display: block; margin-bottom: 5px;">
+                    LANGUAGE / LANGUE / اللغة
+                </label>
+                <select id="languageSelect" onchange="changeLanguage(this.value)" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: white; font-weight: 500;">
+                    <option value="en" selected>EN </option>
+                    <option value="fr">FR </option>
+                    <option value="ar">AR</option>
+                </select>
+            </div>
+            <div class="index-container">
+                <label class="index-label">
+                    PINECONE INDEX 
+                    <span id="refreshIndexBtn" onclick="loadIndexes()" title="Refresh"><i class="fa-solid fa-sync"></i></span>
+                </label>
+                <div class="index-controls">
+                    <select id="indexSelect" onchange="switchIndex(this.value)"></select>
+                    <button onclick="toggleCreateInput()" title="New Index" class="plus-btn">+</button>
+                </div>
+                <div id="createIndexContainer">
+                    <input type="text" id="newIndexName" placeholder="new-index-name">
+                    <button onclick="createNewIndex()" class="create-confirm-btn">Create</button>
+                </div>
+            </div>
+
+            <button class="sidebar-btn diagnosis-btn" onclick="openDiagnosisModal()">
+                <i class="fa-solid fa-stethoscope"></i> Check Sickness (Voice)
+            </button>
+
+            <div class="upload-container" id="drop-zone">
+                <input type="file" id="fileInput" hidden accept=".pdf,.txt">
+                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <p>Drag PDF or <span class="browse-link" onclick="document.getElementById('fileInput').click()">Browse</span></p>
+                <div id="file-name" class="file-name"></div>
+                <button id="uploadBtn" onclick="uploadFile()" disabled>Analyze Document</button>
+            </div>
+            
+           <div class="sidebar-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span class="dot online"></span> System Operational
+                </div>
+                <button onclick="logout()" title="Logout" style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1.1rem;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <main class="chat-interface">
+            <header class="chat-header">
+                <div class="header-info">
+                    <h3>Medical Assistant</h3>
+                    <p>AI-powered analysis & Voice Diagnostics</p>
+                </div>
+                <button class="settings-toggle" onclick="toggleSettings()">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </header>
+
+            <div id="settingsPanel" class="settings-panel">
+                <h4>Configuration</h4>
+                <div class="setting-item">
+                    <label>System Prompt</label>
+                    <textarea id="sysPrompt" rows="4" placeholder="You are a helpful medical assistant..."></textarea>
+                </div>
+                <div class="setting-item">
+                    <label>Max Tokens: <span id="tokenVal">200</span></label>
+                    <input type="range" id="maxTokens" min="50" max="500" value="200" oninput="document.getElementById('tokenVal').textContent=this.value">
+                </div>
+                <div class="setting-item">
+                    <label>Temperature: <span id="tempVal">0.5</span></label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.5" oninput="document.getElementById('tempVal').textContent=this.value">
+                </div>
+                <button class="close-settings-btn" onclick="toggleSettings()">Close</button>
+            </div>
+
+            <div class="chat-window" id="chatbox">
+                <div class="message bot">
+                    <div class="avatar"><i class="fa-solid fa-user-doctor"></i></div>
+                    <div class="content">Hello. I am your Medical RAG Assistant. Upload a report, ask questions, or use the voice diagnostics tool.</div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <button id="chatMicBtn" onclick="toggleChatRecording()">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <button class="sidebar-btn vision-btn" onclick="openVisionModal()" style="margin-bottom: 20px; background: white; border: 1px solid #7c3aed; color: #7c3aed;">
+                        <i class="fa-solid fa-x-ray"></i> Analyze X-Ray
+                    </button>
+                    <input type="text" id="userInput" placeholder="Ask details..." autocomplete="off">
+                    <button id="sendBtn" onclick="sendMessage()">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+                <p class="disclaimer">AI can make mistakes. Please verify critical medical information.</p>
+            </div>
+        </main>
+    </div>
+
+    <div id="voiceModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Respiratory Diagnosis</h3>
+            <p class="modal-subtitle">Record all three samples (4s each) to analyze.</p>
+
+            <div class="record-grid">
+                <div class="record-card" id="card-cough" onclick="recordSample('cough')">
+                    <i class="fa-solid fa-head-side-cough icon"></i>
+                    <div class="label">Cough</div>
+                    <div class="status-text" id="status-cough">Click to Record</div>
+                </div>
+                <div class="record-card" id="card-breath" onclick="recordSample('breath')">
+                    <i class="fa-solid fa-lungs icon"></i>
+                    <div class="label">Breath</div>
+                    <div class="status-text" id="status-breath">Click to Record</div>
+                </div>
+                <div class="record-card" id="card-speech" onclick="recordSample('speech')">
+                    <i class="fa-solid fa-comments icon"></i>
+                    <div class="label">Speech</div>
+                    <div class="status-text" id="status-speech">Click to Record</div>
+                </div>
+            </div>
+
+            <div id="analysisResult" class="analysis-result"></div>
+
+            <div class="modal-actions">
+                <button id="analyzeBtn" onclick="submitDiagnosis()" disabled>Analyze Samples</button>
+                <button class="cancel-btn" onclick="closeVoiceModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    <div id="visionModal" class="modal-overlay">
+    <div class="modal-content" style="width: 800px; max-width: 95%;">
+        <h3>Chest X-Ray Analysis</h3>
+        <p class="modal-subtitle">Upload a chest X-ray (PA/AP view) for pathology detection.</p>
+
+        <div class="upload-container" id="xray-drop-zone" style="margin: 20px 0; border-color: #7c3aed; background: #fbf8ff;">
+            <input type="file" id="xrayInput" hidden accept="image/*">
+            <div class="upload-icon" style="color: #7c3aed;"><i class="fa-solid fa-file-medical"></i></div>
+            <p>Drag X-Ray or <span onclick="document.getElementById('xrayInput').click()" style="color: #7c3aed; cursor: pointer; font-weight: 600;">Browse</span></p>
+            <div id="xray-name" style="margin-top:5px; font-weight:500;"></div>
+        </div>
+
+        <div id="visionResult" style="display: none; margin-top: 20px;">
+            <div id="visionLoading" style="display:none; color: #7c3aed; font-weight: 600;">
+                <i class="fa-solid fa-spinner fa-spin"></i> Processing Grad-CAM...
+            </div>
+            <img id="visionOutput" style="width: 100%; border-radius: 8px; border: 2px solid #eee; display: none;" />
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button id="runVisionBtn" onclick="submitXray()" disabled style="background: #7c3aed;">Run Analysis</button>
+            <button class="cancel-btn" onclick="closeVisionModal()">Close</button>
+        </div>
+    </div>
+</div>
+    <div id="toast-container"></div>
+
+    <script src="/static/js/script.js"></script>
+</body>
+</html>
