@@ -13,5 +13,6 @@ LORA_REPO_ID = r"C:\Users\khali\OneDrive\Bureau\mistral fine tuned\mistral-medic
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 PINECONE_API_KEY=os.getenv("PINECONE_API_KEY")
 
-PINECONE_INDEX_NAME = "medical-chat"
-EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+PINECONE_INDEX_NAME = "general-medstral"
+EMBEDDING_MODEL_NAME_EN = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
