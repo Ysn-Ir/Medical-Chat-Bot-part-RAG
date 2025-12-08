@@ -5,17 +5,17 @@
 **MedStral** is a unified AI diagnostic platform that bridges the gap between text, vision, and audio in healthcare. It combines a fine-tuned **Large Language Model (LLM)** for reasoning, **Computer Vision** for X-ray analysis, and **Audiomics** for respiratory biomarker detection into a single, secure web application.
 ## 📸 Screenshots
 
-### 🧠 Generative Core (Chat)
+###  Generative Core (Chat)
 ![Chat Interface](screenshots/chat.png)
 
-### 🩻 Visual Cortex (X-Ray)
+###  Visual Cortex (X-Ray)
 ![X-Ray Analysis](screenshots/xray.png)
 
-### 🎙️ Auditory Cortex (Voice)
+###  Auditory Cortex (Voice)
 ![Voice Analysis](screenshots/voice.png)
 
-### 📊 Dashboard / Model Output
-![Dashboard](screenshots/dashboard.png)
+### login
+![login](screenshots/login.png)
 -----
 
 ## 🚀 Key Features
