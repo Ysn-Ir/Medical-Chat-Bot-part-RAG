@@ -1,6 +1,4 @@
-Here is a professional, developer-ready `README.md` for your GitHub repository. It condenses the technical whitepaper into actionable setup instructions and project highlights.
 
------
 
 # 🩺 MedStral: Intelligent Multimodal Medical Assistant
 
